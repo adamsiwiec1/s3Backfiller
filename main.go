@@ -15,17 +15,20 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"sync"
 )
 
-// global aws vars
-var sess, _ = session.NewSession(&aws.Config{
-	Region:      aws.String("us-east-1"),
-	Credentials: credentials.NewSharedCredentials("", "session"),
-})
-var uploader = s3manager.NewUploader(sess)
-var downloader = s3manager.NewDownloader(sess)
+var (
+	sess, _ = session.NewSession(&aws.Config{
+		Region:      aws.String("us-east-1"),
+		Credentials: credentials.NewSharedCredentials("", "session")})
+	uploader   = s3manager.NewUploader(sess)
+	downloader = s3manager.NewDownloader(sess)
+	wg         sync.WaitGroup
+)
 
 func downloadParquet(bucket string, item string) {
+
 	file, err := os.Create(fmt.Sprintf("tmp/pq/%s", item))
 	numBytes, err := downloader.Download(file,
 		&s3.GetObjectInput{
@@ -38,7 +41,7 @@ func downloadParquet(bucket string, item string) {
 	fmt.Println("Downloaded", file.Name(), numBytes, "bytes")
 }
 
-func uploadParquet(bucket string, itemName string, itemPath string) {
+func uploadParquet(bucket string, itemName string, itemPath string) string {
 	file, _ := ioutil.ReadFile(itemPath)
 	output, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(bucket),
@@ -49,9 +52,11 @@ func uploadParquet(bucket string, itemName string, itemPath string) {
 		log.Fatalf("Unable to upload item %q, %v", itemPath, err)
 	}
 	fmt.Println("Uploaded", output.Location)
+	return output.Location
 }
 
 func convertToJsonLocal(pqFilePath string) (string, string) {
+
 	var jsonFileName = pqFilePath
 	pqFilePath = fmt.Sprintf("tmp/pq/%s", pqFilePath)
 	fr, err := local.NewLocalFileReader(pqFilePath)
@@ -81,12 +86,31 @@ func convertToJsonLocal(pqFilePath string) (string, string) {
 	return jsonFileName, jsonFilePath
 }
 
-func pullAndConvertBatch(srcBucket string, dstBucket string, files []string) {
-	for i := 0; i < len(files); i++ {
-		downloadParquet(srcBucket, files[i])
-		var jsonLocalFileName, jsonLocalFilePath = convertToJsonLocal(files[i])
+func pullAndConvertBatch(srcBucket string, dstBucket string, batch []string) { //, ch chan<- string) {
+	defer wg.Done()
+	for i := 0; i < len(batch); i++ {
+		downloadParquet(srcBucket, batch[i])
+		var jsonLocalFileName, jsonLocalFilePath = convertToJsonLocal(batch[i])
 		uploadParquet(dstBucket, jsonLocalFileName, jsonLocalFilePath)
 	}
+}
+
+func processBatches(srcBucket string, dstBucket string, fileList []string, batchSize int) []string {
+	var results []string
+	var j int
+	for i := 0; i < len(fileList); i += batchSize {
+		j += batchSize
+		if j > len(fileList) {
+			j = len(fileList)
+		}
+		wg.Add(1)
+		go pullAndConvertBatch(srcBucket, dstBucket, fileList[i:j]) //, ch)
+		fmt.Println(fileList[i:j])
+	}
+	fmt.Println("waiting..")
+	wg.Wait()
+	fmt.Println("finished.")
+	return results
 }
 
 func main() {
@@ -94,6 +118,15 @@ func main() {
 		"userdata2.parquet",
 		"userdata3.parquet",
 		"userdata4.parquet",
-		"userdata5.parquet"}
-	pullAndConvertBatch("s3-backfiller-src", "s3-backfiller-dst", fileList)
+		"userdata5.parquet",
+		"userdata6.parquet",
+		"userdata7.parquet",
+		"userdata8.parquet",
+		"userdata9.parquet",
+		"userdata10.parquet",
+		"userdata11.parquet",
+		"userdata12.parquet",
+		"userdata13.parquet",
+		"userdata14.parquet"}
+	defer processBatches("s3-backfiller-src", "s3-backfiller-dst", fileList, 4)
 }
