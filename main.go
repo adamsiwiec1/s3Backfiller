@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"regexp"
 )
 
 func downloadParquet(bucket string, item string) {
@@ -26,7 +27,7 @@ func downloadParquet(bucket string, item string) {
 	downloader := s3manager.NewDownloader(sess)
 
 	// act
-	file, err := os.Create(item)
+	file, err := os.Create(fmt.Sprintf("tmp/%s", item))
 	numBytes, err := downloader.Download(file,
 		&s3.GetObjectInput{
 			Bucket: aws.String(bucket),
@@ -38,8 +39,8 @@ func downloadParquet(bucket string, item string) {
 	fmt.Println("Downloaded", file.Name(), numBytes, "bytes")
 }
 
-func convertToJsonFromLocal(pqFilePath string) {
-	fr, err := local.NewLocalFileReader(pqFilePath)
+func convertToJsonLocal(pqFilePath string) {
+	fr, err := local.NewLocalFileReader(fmt.Sprintf("tmp/%s", pqFilePath))
 	if err != nil {
 		log.Println("Can't open file", err)
 		return
@@ -64,11 +65,25 @@ func convertToJsonFromLocal(pqFilePath string) {
 		return
 	}
 	fmt.Println(string(jsonBs))
-
-	_ = ioutil.WriteFile("test.json", jsonBs, 0644)
+	re := regexp.MustCompile("^([^.]+)")
+	fmt.Println(pqFilePath)
+	_ = ioutil.WriteFile(fmt.Sprintf("tmp/%s.json", re.FindString(pqFilePath)), jsonBs, 0644)
 }
 
+func pullAndConvertBatch(bucket string, files []string) {
+	for i := 0; i < len(files); i++ {
+		downloadParquet(bucket, files[i])
+		convertToJsonLocal(files[i])
+	}
+}
+
+// to do: ls the s3 bucket and append each file obj to a list
+
 func main() {
-	downloadParquet("s3-backfiller-src", "userdata1.parquet")
-	convertToJsonFromLocal("userdata1.parquet")
+	fileList := []string{"userdata1.parquet",
+		"userdata2.parquet",
+		"userdata3.parquet",
+		"userdata4.parquet",
+		"userdata5.parquet"}
+	pullAndConvertBatch("s3-backfiller-src", fileList)
 }
