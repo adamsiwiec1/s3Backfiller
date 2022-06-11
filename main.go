@@ -16,6 +16,9 @@ import (
 	"regexp"
 )
 
+// to do:
+// - mkdirs on startup if they are not made already
+
 func downloadParquet(bucket string, item string) {
 	// session
 	sess, _ := session.NewSession(&aws.Config{
@@ -27,7 +30,7 @@ func downloadParquet(bucket string, item string) {
 	downloader := s3manager.NewDownloader(sess)
 
 	// act
-	file, err := os.Create(fmt.Sprintf("tmp/%s", item))
+	file, err := os.Create(fmt.Sprintf("tmp/pq/%s", item))
 	numBytes, err := downloader.Download(file,
 		&s3.GetObjectInput{
 			Bucket: aws.String(bucket),
@@ -40,7 +43,9 @@ func downloadParquet(bucket string, item string) {
 }
 
 func convertToJsonLocal(pqFilePath string) {
-	fr, err := local.NewLocalFileReader(fmt.Sprintf("tmp/%s", pqFilePath))
+	var jsonFileName = pqFilePath
+	pqFilePath = fmt.Sprintf("tmp/pq/%s", pqFilePath)
+	fr, err := local.NewLocalFileReader(pqFilePath)
 	if err != nil {
 		log.Println("Can't open file", err)
 		return
@@ -65,9 +70,10 @@ func convertToJsonLocal(pqFilePath string) {
 		return
 	}
 	fmt.Println(string(jsonBs))
-	re := regexp.MustCompile("^([^.]+)")
-	fmt.Println(pqFilePath)
-	_ = ioutil.WriteFile(fmt.Sprintf("tmp/%s.json", re.FindString(pqFilePath)), jsonBs, 0644)
+	re := regexp.MustCompile("([^.]*)")
+	jsonFileName = re.FindString(jsonFileName)
+	_ = ioutil.WriteFile(fmt.Sprintf("tmp/json/%s.json", jsonFileName), jsonBs, 0644)
+	//_ = ioutil.WriteFile(fmt.Sprintf("%s.json", re.FindString(pqFilePath)), jsonBs, 0644)
 }
 
 func pullAndConvertBatch(bucket string, files []string) {
@@ -76,8 +82,6 @@ func pullAndConvertBatch(bucket string, files []string) {
 		convertToJsonLocal(files[i])
 	}
 }
-
-// to do: ls the s3 bucket and append each file obj to a list
 
 func main() {
 	fileList := []string{"userdata1.parquet",
