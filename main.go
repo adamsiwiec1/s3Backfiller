@@ -18,7 +18,7 @@ import (
 )
 
 // to do:
-// - mkdirs on startup if they are not made already
+// - mkdirs on startup in an elegant way if they are not made already
 
 var sess, _ = session.NewSession(&aws.Config{
 	Region:      aws.String("us-east-1"),
