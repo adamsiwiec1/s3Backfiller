@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
@@ -17,19 +18,15 @@ import (
 )
 
 // to do:
-// - mkdirs on startup if they are not made already
+// - mkdirs on startup in an elegant way if they are not made already
+
+var sess, _ = session.NewSession(&aws.Config{
+	Region:      aws.String("us-east-1"),
+	Credentials: credentials.NewSharedCredentials("", "session"),
+})
 
 func downloadParquet(bucket string, item string) {
-	// session
-	sess, _ := session.NewSession(&aws.Config{
-		Region:      aws.String("us-east-1"),
-		Credentials: credentials.NewSharedCredentials("", "session"),
-	})
-
-	// downloader
 	downloader := s3manager.NewDownloader(sess)
-
-	// act
 	file, err := os.Create(fmt.Sprintf("tmp/pq/%s", item))
 	numBytes, err := downloader.Download(file,
 		&s3.GetObjectInput{
@@ -42,44 +39,51 @@ func downloadParquet(bucket string, item string) {
 	fmt.Println("Downloaded", file.Name(), numBytes, "bytes")
 }
 
-func convertToJsonLocal(pqFilePath string) {
+func uploadParquet(bucket string, itemName string, itemPath string) {
+	file, _ := ioutil.ReadFile(itemPath)
+	uploader := s3manager.NewUploader(sess)
+	log.Println(file)
+	uploader.Upload(&s3manager.UploadInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(fmt.Sprintf("tmp/json/%s.json", itemName)),
+		Body:   bytes.NewReader(file),
+	})
+}
+
+func convertToJsonLocal(pqFilePath string) (string, string) {
 	var jsonFileName = pqFilePath
 	pqFilePath = fmt.Sprintf("tmp/pq/%s", pqFilePath)
 	fr, err := local.NewLocalFileReader(pqFilePath)
 	if err != nil {
 		log.Println("Can't open file", err)
-		return
 	}
 
 	pr, err := reader.NewParquetReader(fr, nil, 4)
 	if err != nil {
 		log.Println("Can't create parquet reader", err)
-		return
 	}
 	var num = 0
 	num = int(pr.GetNumRows())
 	res, err := pr.ReadByNumber(num)
 	if err != nil {
 		log.Println("Can't read", err)
-		return
 	}
-	fmt.Println(res)
 	jsonBs, err := json.Marshal(res)
 	if err != nil {
 		log.Println("Can't to json", err)
-		return
 	}
-	fmt.Println(string(jsonBs))
 	re := regexp.MustCompile("([^.]*)")
 	jsonFileName = re.FindString(jsonFileName)
-	_ = ioutil.WriteFile(fmt.Sprintf("tmp/json/%s.json", jsonFileName), jsonBs, 0644)
-	//_ = ioutil.WriteFile(fmt.Sprintf("%s.json", re.FindString(pqFilePath)), jsonBs, 0644)
+	var jsonFilePath = fmt.Sprintf("tmp/json/%s.json", jsonFileName)
+	_ = ioutil.WriteFile(jsonFilePath, jsonBs, 0644)
+	return jsonFileName, jsonFilePath
 }
 
-func pullAndConvertBatch(bucket string, files []string) {
+func pullAndConvertBatch(srcBucket string, dstBucket string, files []string) {
 	for i := 0; i < len(files); i++ {
-		downloadParquet(bucket, files[i])
-		convertToJsonLocal(files[i])
+		downloadParquet(srcBucket, files[i])
+		var jsonLocalFileName, jsonLocalFilePath = convertToJsonLocal(files[i])
+		uploadParquet(dstBucket, jsonLocalFileName, jsonLocalFilePath)
 	}
 }
 
@@ -89,5 +93,5 @@ func main() {
 		"userdata3.parquet",
 		"userdata4.parquet",
 		"userdata5.parquet"}
-	pullAndConvertBatch("s3-backfiller-src", fileList)
+	pullAndConvertBatch("s3-backfiller-src", "s3-backfiller-dst", fileList)
 }
