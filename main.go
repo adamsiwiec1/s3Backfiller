@@ -23,7 +23,7 @@ import (
 
 var (
 	maxRetries  = 3
-	maxPartSize = int64(500 * 1024 * 1024) // 1024 *1024 = ab 1 mb
+	maxPartSize = int64(200 * 1024 * 1024) // 1024 *1024 = ab 1 mb
 	sess, _     = session.NewSession(&aws.Config{
 		Region:      aws.String("us-east-1"),
 		Credentials: credentials.NewSharedCredentials("", "session")})
@@ -33,15 +33,6 @@ var (
 	//svc        = s3.New(sess) // this obj gives you a larger amt of s3 actions compared to s3manager
 	wg sync.WaitGroup
 )
-
-type ETag struct {
-	ETag       string
-	PartNumber int
-}
-
-type FileParts struct {
-	Parts []ETag
-}
 
 func crawlBucket(srcBucket string) []string { // need to recursively crawl idk if this does
 	var items []string
@@ -122,8 +113,8 @@ func pullAndConvertBatch(srcBucket string, dstBucket string, batch []string) {
 	for i := 0; i < len(batch); i++ {
 		downloadParquet(srcBucket, batch[i])
 		fileName, filePath := convertToJsonLocal(batch[i])
-		regularUpload(dstBucket, fileName, filePath)
-		//superSpeedUpload(dstBucket, fileName, filePath)
+		//regularUpload(dstBucket, fileName, filePath)
+		superSpeedUpload(dstBucket, fileName, filePath)
 	}
 }
 
@@ -133,18 +124,22 @@ func superSpeedUpload(bucketName string, fileName string, filePath string) {
 		fmt.Printf("err opening file: %s", err)
 		return
 	}
-	defer file.Close()
+	defer func() {
+		err = file.Close()
+		if err != nil {
+			fmt.Println("error closing file..")
+		}
+	}()
+
 	fileInfo, _ := file.Stat()
 	size := fileInfo.Size()
 	buffer := make([]byte, size)
-	//fileType := http.DetectContentType(buffer)
 	file.Read(buffer)
 
 	path := fmt.Sprintf("%s.json", fileName)
 	input := &s3.CreateMultipartUploadInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(path),
-		//ContentType: aws.String(fileType),
 	}
 
 	resp, err := svc.CreateMultipartUpload(input)
