@@ -121,20 +121,24 @@ func pullAndConvertBatch(srcBucket string, dstBucket string, batch []string) {
 func superSpeedUpload(bucketName string, fileName string, filePath string) {
 	file, err := os.Open(filePath)
 	if err != nil {
-		fmt.Printf("err opening file: %s", err)
+		fmt.Printf("err opening file.. %s\n", err)
 		return
 	}
 	defer func() {
 		err = file.Close()
 		if err != nil {
-			fmt.Println("error closing file..")
+			fmt.Printf("error closing file..%s\n", err)
 		}
 	}()
 
 	fileInfo, _ := file.Stat()
 	size := fileInfo.Size()
 	buffer := make([]byte, size)
-	file.Read(buffer)
+
+	_, err = file.Read(buffer)
+	if err != nil {
+		fmt.Printf("error reading file..%s\n", err)
+	}
 
 	path := fmt.Sprintf("%s.json", fileName)
 	input := &s3.CreateMultipartUploadInput{
