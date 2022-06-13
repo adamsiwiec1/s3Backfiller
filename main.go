@@ -15,15 +15,15 @@ import (
 	"io/ioutil"
 	"log"
 	"math"
-	"net/http"
 	"os"
 	"regexp"
 	"sync"
+	"time"
 )
 
 var (
 	maxRetries  = 3
-	maxPartSize = int64(25 * 1024 * 1024) // 1024 *1024 = ab 1 mb
+	maxPartSize = int64(500 * 1024 * 1024) // 1024 *1024 = ab 1 mb
 	sess, _     = session.NewSession(&aws.Config{
 		Region:      aws.String("us-east-1"),
 		Credentials: credentials.NewSharedCredentials("", "session")})
@@ -43,6 +43,19 @@ type FileParts struct {
 	Parts []ETag
 }
 
+func crawlBucket(srcBucket string) []string { // need to recursively crawl idk if this does
+	var items []string
+	resp, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{Bucket: aws.String(srcBucket)})
+	if err != nil {
+		fmt.Println("Error crawling bucket..")
+	}
+	for _, item := range resp.Contents {
+		fmt.Println(*item.Key)
+		items = append(items, *item.Key)
+	}
+	return items
+}
+
 func downloadParquet(bucket string, item string) {
 
 	file, err := os.Create(fmt.Sprintf("tmp/pq/%s", item))
@@ -55,20 +68,6 @@ func downloadParquet(bucket string, item string) {
 		log.Fatalf("Unable to download item %q, %v", item, err)
 	}
 	fmt.Println("Downloaded", file.Name(), numBytes, "bytes")
-}
-
-func uploadParquet(bucket string, itemName string, itemPath string) string {
-	file, _ := ioutil.ReadFile(itemPath)
-	output, err := uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(fmt.Sprintf("json/%s.json", itemName)),
-		Body:   bytes.NewReader(file),
-	})
-	if err != nil {
-		log.Fatalf("Unable to upload item %q, %v", itemPath, err)
-	}
-	fmt.Println("Uploaded", output.Location)
-	return output.Location
 }
 
 func convertToJsonLocal(pqFilePath string) (string, string) {
@@ -102,15 +101,6 @@ func convertToJsonLocal(pqFilePath string) (string, string) {
 	return jsonFileName, jsonFilePath
 }
 
-func pullAndConvertBatch(srcBucket string, dstBucket string, batch []string) {
-	defer wg.Done()
-	for i := 0; i < len(batch); i++ {
-		downloadParquet(srcBucket, batch[i])
-		jsonLocalFileName, jsonLocalFilePath := convertToJsonLocal(batch[i])
-		uploadParquet(dstBucket, jsonLocalFileName, jsonLocalFilePath)
-	}
-}
-
 func processBatches(srcBucket string, dstBucket string, fileList []string, batchSize int) {
 	var j int
 	for i := 0; i < len(fileList); i += batchSize {
@@ -127,9 +117,18 @@ func processBatches(srcBucket string, dstBucket string, fileList []string, batch
 	fmt.Println("finished.")
 }
 
-func superSpeedUpload(bucketName string, fileName string, parts string) { // in development
+func pullAndConvertBatch(srcBucket string, dstBucket string, batch []string) {
+	defer wg.Done()
+	for i := 0; i < len(batch); i++ {
+		downloadParquet(srcBucket, batch[i])
+		fileName, filePath := convertToJsonLocal(batch[i])
+		regularUpload(dstBucket, fileName, filePath)
+		//superSpeedUpload(dstBucket, fileName, filePath)
+	}
+}
 
-	file, err := os.Open(fmt.Sprintf("tmp/upload/%s", fileName))
+func superSpeedUpload(bucketName string, fileName string, filePath string) {
+	file, err := os.Open(filePath)
 	if err != nil {
 		fmt.Printf("err opening file: %s", err)
 		return
@@ -138,14 +137,14 @@ func superSpeedUpload(bucketName string, fileName string, parts string) { // in 
 	fileInfo, _ := file.Stat()
 	size := fileInfo.Size()
 	buffer := make([]byte, size)
-	fileType := http.DetectContentType(buffer)
+	//fileType := http.DetectContentType(buffer)
 	file.Read(buffer)
 
-	path := "/uploads/" + fileName
+	path := fmt.Sprintf("%s.json", fileName)
 	input := &s3.CreateMultipartUploadInput{
-		Bucket:      aws.String(bucketName),
-		Key:         aws.String(path),
-		ContentType: aws.String(fileType),
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(path),
+		//ContentType: aws.String(fileType),
 	}
 
 	resp, err := svc.CreateMultipartUpload(input)
@@ -176,17 +175,14 @@ func superSpeedUpload(bucketName string, fileName string, parts string) { // in 
 		partNumber++
 
 	}
-
 	for i := 0; i < partNumber; i++ {
 
 	}
-
 	completeResponse, err := completeMultipartUpload(svc, resp, completedParts)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
-
 	fmt.Printf("Successfully uploaded file: %s\n", completeResponse.String())
 }
 
@@ -218,8 +214,8 @@ func uploadPart(svc *s3.S3, resp *s3.CreateMultipartUploadOutput, fileBytes []by
 		uploadResult, err := svc.UploadPart(partInput)
 		if err != nil {
 			if tryNum == maxRetries {
-				if aerr, ok := err.(awserr.Error); ok {
-					return nil, aerr
+				if err2, ok := err.(awserr.Error); ok {
+					return nil, err2
 				}
 				return nil, err
 			}
@@ -259,31 +255,36 @@ func abortMultipartUpload(svc *s3.S3, resp *s3.CreateMultipartUploadOutput) erro
 	return err
 }
 
-//func recursivelyCrawlBucket(srcBucket string) {
-//
-//}
+func regularUpload(bucket string, itemName string, itemPath string) string {
+	file, _ := ioutil.ReadFile(itemPath)
+	output, err := uploader.Upload(&s3manager.UploadInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(fmt.Sprintf("json/%s.json", itemName)),
+		Body:   bytes.NewReader(file),
+	})
+	if err != nil {
+		log.Fatalf("Unable to upload item %q, %v", itemPath, err)
+	}
+	fmt.Println("Uploaded", output.Location)
+	return output.Location
+}
 
 func main() {
-	//start := time.Now()
-	//fmt.Println("Start time - ", start)
-	//fileList := []string{"smallfile.parquet",
-	//	"test.parquet",
-	//	"userdata3.parquet",
-	//	"test.parquet",
-	//	"userdata5.parquet",
-	//	"userdata6.parquet",
-	//	"userdata7.parquet",
-	//	"userdata8.parquet",
-	//	"userdata9.parquet",
-	//	"userdata10.parquet",
-	//	"userdata11.parquet",
-	//	"userdata12.parquet",
-	//	"userdata13.parquet",
-	//	"userdata14.parquet"}
-	//processBatches("s3-backfiller-src", "s3-backfiller-dst", fileList, 4)
-	//elapsed := time.Since(start)
-	//log.Printf("Execution time - %s", elapsed)
+	/*
+		Notes:
+		1. Print bytes processed etc..
+		2. Use log.Printf() instead of fmt, fmt interferes with the threads. do this asap.
+		3. test if regular upload is more efficient for certain file sizes, find sweet spot
+		4.
+	*/
 
-	// use channels to communicate the etag between threads
-	superSpeedUpload("s3-backfiller-dst", "sq_final2.mp4", "100")
+	start := time.Now()
+	srcBucket := "s3-backfiller-src"
+	dstBucket := "s3-backfiller-dst"
+	fileList := crawlBucket(srcBucket)
+	fmt.Println(fileList)
+	processBatches(srcBucket, dstBucket, fileList, 4)
+	elapsed := time.Since(start)
+	log.Println("Execution time - ", elapsed)
+
 }
