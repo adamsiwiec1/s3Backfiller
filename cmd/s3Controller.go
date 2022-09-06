@@ -1,4 +1,4 @@
-package s3Controller
+package cmd
 
 import (
 	"bytes"

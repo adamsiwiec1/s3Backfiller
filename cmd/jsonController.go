@@ -1,4 +1,4 @@
-package jsonController
+package cmd
 
 import (
 	"encoding/json"
