@@ -23,5 +23,5 @@
 
 ### Examples:
 
-'call to script'
+`call to script`
 
