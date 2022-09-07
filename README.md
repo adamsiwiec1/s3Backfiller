@@ -13,7 +13,7 @@
 - Raw (not yet implemented)
 
 ### Current Features:
-- `pq2json`: Convert Parquet to JSON between Amazon S3 Buckets using Golang.
+- `pq2json` - Convert Parquet to JSON between Amazon S3 Buckets using Golang.
 
 ### Features to be implemented:
 - Write verbose status to log file and output % complete to stdout (along w/ completion time).
