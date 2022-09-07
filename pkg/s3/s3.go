@@ -26,20 +26,6 @@ var (
 	wg sync.WaitGroup
 )
 
-func CrawlBucket(srcBucket string) []string { // need to recursively crawl IDK if this does
-	var items []string
-	fmt.Printf("crawling %s..\n", srcBucket)
-	resp, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{Bucket: aws.String(srcBucket)})
-	if err != nil {
-		fmt.Printf("error crawling bucket..%s\n", err)
-	}
-	for _, item := range resp.Contents {
-		fmt.Println(*item.Key)
-		items = append(items, *item.Key)
-	}
-	return items
-}
-
 func downloadObj(bucket string, item string) {
 	file, err := os.Create(fmt.Sprintf("tmp/src/%s", item))
 	if err != nil {
@@ -78,6 +64,20 @@ func regularUpload(bucket string, itemName string, itemPath string) string {
 	}
 	fmt.Println("uploaded..", output.Location)
 	return output.Location
+}
+
+func CrawlBucket(srcBucket string) []string { // need to recursively crawl IDK if this does
+	var items []string
+	fmt.Printf("crawling %s..\n", srcBucket)
+	resp, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{Bucket: aws.String(srcBucket)})
+	if err != nil {
+		fmt.Printf("error crawling bucket..%s\n", err)
+	}
+	for _, item := range resp.Contents {
+		fmt.Println(*item.Key)
+		items = append(items, *item.Key)
+	}
+	return items
 }
 
 func ProcessBatches(srcBucket string, dstBucket string, fileList []string, batchSize int) {
