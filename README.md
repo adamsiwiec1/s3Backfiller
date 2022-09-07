@@ -19,7 +19,7 @@
 - Write verbose status to log file and output % complete to stdout (along w/ completion time).
 - Add flag to optionally zip dest files.
 - Option to organize destination folder structure. 
-- Automate batch size selection to be most efficient. 
+- Automate batch size selection to choose the most efficient size. 
 
 ### Examples:
 
