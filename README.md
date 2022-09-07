@@ -16,6 +16,7 @@
 - Convert Parquet to JSON between Amazon S3 Buckets using Golang.
 
 ### Features to be implemented:
+- Write verbose status to log file and output % complete to stdout (along w/ completion time).
 - Convert JSON to Parquet between Amazon S3 Buckets using Golang. (next PR)
 - Add flag to optionally zip dest files.
 - Option to organize destination folder structure. 
