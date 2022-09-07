@@ -7,24 +7,22 @@ import (
 	"github.com/xitongsys/parquet-go/reader"
 	"io/ioutil"
 	"log"
+	"os"
 	"regexp"
 )
 
-func ConvertPqToJsonLocal(pqFilePath string) (jsonFileName string, jsonFilePath string) {
-
+func ConvertPqToJson(pqFilePath string) (jsonFileName string, jsonFilePath string) {
 	jsonFileName = pqFilePath
 	pqFilePath = fmt.Sprintf("tmp/src/%s", pqFilePath)
 	fr, err := local.NewLocalFileReader(pqFilePath)
 	if err != nil {
-		log.Println("Can't open file.", err)
+		log.Println("Failed to open file.", err)
 	}
-
 	pr, err := reader.NewParquetReader(fr, nil, 4)
 	if err != nil {
-		log.Println("Can't create parquet reader.", err)
+		log.Println("Failed to create parquet reader.", err)
 	}
-	num := 0
-	num = int(pr.GetNumRows())
+	num := int(pr.GetNumRows())
 	res, err := pr.ReadByNumber(num)
 	if err != nil {
 		log.Println("Can't read.", err)
@@ -37,11 +35,10 @@ func ConvertPqToJsonLocal(pqFilePath string) (jsonFileName string, jsonFilePath 
 	jsonFileName = re.FindString(jsonFileName)
 	jsonFilePath = fmt.Sprintf("tmp/dst/%s.json", jsonFileName)
 	_ = ioutil.WriteFile(jsonFilePath, jsonBs, 0644)
-	fmt.Println("conversion complete..", pqFilePath)
-	return jsonFileName, jsonFilePath
-}
-
-func ConvertPqToJsonObj(pqFilePath string) (jsonFileName string, jsonFilePath string) {
-	// this method will convert without pulling down to local filesystem.
+	log.Println("conversion complete..", pqFilePath)
+	err = os.Remove(pqFilePath) // remove file after conversion
+	if err != nil {
+		log.Printf("Error removing file after conversion. %s", pqFilePath)
+	}
 	return jsonFileName, jsonFilePath
 }

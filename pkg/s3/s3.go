@@ -31,25 +31,25 @@ func conversionSwitch(srcType string, dstType string, item string) (fileName str
 	case "pq":
 		switch dstType {
 		case "json":
-			return pq.ConvertPqToJsonLocal(item)
+			return pq.ConvertPqToJson(item)
 		case "avro":
-			fmt.Println("NOT IMPLEMENTED. EXITiNG")
-			//return pq.ConvertPqToJsonLocal(item)
+			log.Println("NOT IMPLEMENTED. EXITiNG")
+			//return pq.ConvertPqToJson(item)
 		case "csv":
-			fmt.Println("NOT IMPLEMENTED. EXITiNG")
-			//return pq.ConvertPqToJsonLocal(batch[i])
+			log.Println("NOT IMPLEMENTED. EXITiNG")
+			//return pq.ConvertPqToJson(batch[i])
 		}
 	case "json":
 		switch dstType {
 		case "pq":
-			fmt.Println("NOT IMPLEMENTED. EXITiNG")
-			//return pq.ConvertPqToJsonLocal(item)
+			log.Println("NOT IMPLEMENTED. EXITiNG")
+			//return pq.ConvertPqToJson(item)
 		case "avro":
-			fmt.Println("NOT IMPLEMENTED. EXITiNG")
-			//return pq.ConvertPqToJsonLocal(item)
+			log.Println("NOT IMPLEMENTED. EXITiNG")
+			//return pq.ConvertPqToJson(item)
 		case "csv":
-			fmt.Println("NOT IMPLEMENTED. EXITiNG")
-			//return pq.ConvertPqToJsonLocal(batch[i])
+			log.Println("NOT IMPLEMENTED. EXITiNG")
+			//return pq.ConvertPqToJson(batch[i])
 		}
 	}
 	return
@@ -69,7 +69,7 @@ func downloadObj(bucket string, item string) {
 	if err != nil {
 		log.Fatalf("Unable to download item. %q, %v", item, err)
 	}
-	fmt.Println("downloaded..", file.Name(), numBytes, "bytes")
+	log.Println("downloaded..", file.Name(), numBytes, "bytes")
 }
 
 func regularUpload(bucket string, itemName string, itemPath string) string {
@@ -83,23 +83,27 @@ func regularUpload(bucket string, itemName string, itemPath string) string {
 		if err != nil {
 			log.Fatalf("Unable to upload item %q, %v", itemPath, err)
 		}
-		fmt.Println("uploaded..", output.Location)
+		log.Println("uploaded..", output.Location)
+		err = os.Remove(itemPath) // remove file after upload
+		if err != nil {
+			log.Printf("Unable to remove item: %s", itemPath)
+		}
 		return output.Location
 	} else {
-		fmt.Printf("Sorry.. Couldn't find the item to upload.\nitemName: '%s'\nitemPath: '%s'\n", itemName, itemPath)
+		log.Printf("Sorry.. Couldn't find the item to upload.\nitemName: '%s'\nitemPath: '%s'\n", itemName, itemPath)
 	}
 	return "there was an error uploading this object.."
 }
 
 func CrawlBucket(srcBucket string) []string { // need to recursively crawl IDK if this does
 	var items []string
-	fmt.Printf("crawling %s..\n", srcBucket)
+	log.Printf("crawling %s..\n", srcBucket)
 	resp, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{Bucket: aws.String(srcBucket)})
 	if err != nil {
-		fmt.Printf("error crawling bucket..%s\n", err)
+		log.Printf("error crawling bucket..%s\n", err)
 	}
 	for _, item := range resp.Contents {
-		fmt.Println(*item.Key)
+		log.Println(*item.Key)
 		items = append(items, *item.Key)
 	}
 	return items
@@ -126,7 +130,7 @@ func ProcessBatches(srcBucket string, dstBucket string, srcType string, dstType 
 		go pullAndConvertBatch(srcBucket, dstBucket, srcType, dstType, fileList[i:j]) // begin thread
 		// fmt.Println(fileList[i:j]) // print out items in each batch
 	}
-	fmt.Println("waiting..")
+	log.Println("threads started.. waiting..")
 	wg.Wait()
-	fmt.Println("finished.")
+	log.Println("threads finished.")
 }

@@ -1,6 +1,6 @@
 package json
 
-func convertJsonToPqLocal(pqFilePath string) (string, string) {
+func ConvertJsonToPq(jsonFilePath string) (pqFileName string, pqFilePath string) {
 
 	return "need 2 implement", "need 2 implement"
 }

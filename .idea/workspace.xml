@@ -6,10 +6,11 @@
   <component name="ChangeListManager">
     <list default="true" id="4841e04a-bac3-458f-80ca-a557c5237da2" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/s3Backfiller/s3Backfiller.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/s3Backfiller/s3Backfiller.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/main.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/json/json.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/json/json.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pkg/pq/pq.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/pq/pq.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pkg/s3/s3.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/s3/s3.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/s3Backfiller.exe" beforeDir="false" afterPath="$PROJECT_DIR$/s3Backfiller.exe" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
