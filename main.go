@@ -1,9 +1,7 @@
 package main
 
-import (
-	"s3-backfiller/cmd"
-)
+import "s3Backfiller/cmd/s3Backfiller"
 
 func main() {
-	cmd.Execute()
+	s3Backfiller.Execute()
 }

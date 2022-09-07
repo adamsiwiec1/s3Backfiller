@@ -11,7 +11,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"s3-backfiller/pkg/pq"
+	"s3Backfiller/pkg/pq"
 	"sync"
 )
 
@@ -28,9 +28,10 @@ var (
 
 func CrawlBucket(srcBucket string) []string { // need to recursively crawl IDK if this does
 	var items []string
+	fmt.Printf("crawling %s..\n", srcBucket)
 	resp, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{Bucket: aws.String(srcBucket)})
 	if err != nil {
-		fmt.Println("Error crawling bucket..")
+		fmt.Printf("error crawling bucket..%s\n", err)
 	}
 	for _, item := range resp.Contents {
 		fmt.Println(*item.Key)
@@ -41,15 +42,19 @@ func CrawlBucket(srcBucket string) []string { // need to recursively crawl IDK i
 
 func downloadObj(bucket string, item string) {
 	file, err := os.Create(fmt.Sprintf("tmp/src/%s", item))
+	if err != nil {
+		log.Fatalf("Unable to create file. %q, %v", item, err)
+	}
+
 	numBytes, err := downloader.Download(file,
 		&s3.GetObjectInput{
 			Bucket: aws.String(bucket),
 			Key:    aws.String(item),
 		})
 	if err != nil {
-		log.Fatalf("Unable to download item %q, %v", item, err)
+		log.Fatalf("Unable to download item. %q, %v", item, err)
 	}
-	fmt.Println("Downloaded", file.Name(), numBytes, "bytes")
+	fmt.Println("downloaded..", file.Name(), numBytes, "bytes")
 }
 
 func pullAndConvertBatch(srcBucket string, dstBucket string, batch []string) {
@@ -65,13 +70,13 @@ func regularUpload(bucket string, itemName string, itemPath string) string {
 	file, _ := ioutil.ReadFile(itemPath)
 	output, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(bucket),
-		Key:    aws.String(fmt.Sprintf("jsonController/%s.jsonController", itemName)),
+		Key:    aws.String(fmt.Sprintf("%s.json", itemName)),
 		Body:   bytes.NewReader(file),
 	})
 	if err != nil {
 		log.Fatalf("Unable to upload item %q, %v", itemPath, err)
 	}
-	fmt.Println("Uploaded", output.Location)
+	fmt.Println("uploaded..", output.Location)
 	return output.Location
 }
 
