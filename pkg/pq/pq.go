@@ -10,9 +10,9 @@ import (
 	"regexp"
 )
 
-func ConvertPqToJsonLocal(pqFilePath string) (string, string) {
+func ConvertPqToJsonLocal(pqFilePath string) (jsonFileName string, jsonFilePath string) {
 
-	var jsonFileName = pqFilePath
+	jsonFileName = pqFilePath
 	pqFilePath = fmt.Sprintf("tmp/src/%s", pqFilePath)
 	fr, err := local.NewLocalFileReader(pqFilePath)
 	if err != nil {
@@ -35,8 +35,13 @@ func ConvertPqToJsonLocal(pqFilePath string) (string, string) {
 	}
 	re := regexp.MustCompile("([^.]*)")
 	jsonFileName = re.FindString(jsonFileName)
-	jsonFilePath := fmt.Sprintf("tmp/dst/%s.json", jsonFileName)
+	jsonFilePath = fmt.Sprintf("tmp/dst/%s.json", jsonFileName)
 	_ = ioutil.WriteFile(jsonFilePath, jsonBs, 0644)
 	fmt.Println("conversion complete..", pqFilePath)
+	return jsonFileName, jsonFilePath
+}
+
+func ConvertPqToJsonObj(pqFilePath string) (jsonFileName string, jsonFilePath string) {
+	// this method will convert without pulling down to local filesystem.
 	return jsonFileName, jsonFilePath
 }

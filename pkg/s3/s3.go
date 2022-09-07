@@ -26,6 +26,35 @@ var (
 	wg sync.WaitGroup
 )
 
+func conversionSwitch(srcType string, dstType string, item string) (fileName string, filePath string) {
+	switch srcType {
+	case "pq":
+		switch dstType {
+		case "json":
+			return pq.ConvertPqToJsonLocal(item)
+		case "avro":
+			fmt.Println("NOT IMPLEMENTED. EXITiNG")
+			//return pq.ConvertPqToJsonLocal(item)
+		case "csv":
+			fmt.Println("NOT IMPLEMENTED. EXITiNG")
+			//return pq.ConvertPqToJsonLocal(batch[i])
+		}
+	case "json":
+		switch dstType {
+		case "pq":
+			fmt.Println("NOT IMPLEMENTED. EXITiNG")
+			//return pq.ConvertPqToJsonLocal(item)
+		case "avro":
+			fmt.Println("NOT IMPLEMENTED. EXITiNG")
+			//return pq.ConvertPqToJsonLocal(item)
+		case "csv":
+			fmt.Println("NOT IMPLEMENTED. EXITiNG")
+			//return pq.ConvertPqToJsonLocal(batch[i])
+		}
+	}
+	return
+}
+
 func downloadObj(bucket string, item string) {
 	file, err := os.Create(fmt.Sprintf("tmp/src/%s", item))
 	if err != nil {
@@ -43,27 +72,23 @@ func downloadObj(bucket string, item string) {
 	fmt.Println("downloaded..", file.Name(), numBytes, "bytes")
 }
 
-func pullAndConvertBatch(srcBucket string, dstBucket string, batch []string) {
-	defer wg.Done()
-	for i := 0; i < len(batch); i++ {
-		downloadObj(srcBucket, batch[i])
-		fileName, filePath := pq.ConvertPqToJsonLocal(batch[i])
-		regularUpload(dstBucket, fileName, filePath)
-	}
-}
-
 func regularUpload(bucket string, itemName string, itemPath string) string {
 	file, _ := ioutil.ReadFile(itemPath)
-	output, err := uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(fmt.Sprintf("%s.json", itemName)),
-		Body:   bytes.NewReader(file),
-	})
-	if err != nil {
-		log.Fatalf("Unable to upload item %q, %v", itemPath, err)
+	if len(file) > 0 {
+		output, err := uploader.Upload(&s3manager.UploadInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(fmt.Sprintf("%s.json", itemName)),
+			Body:   bytes.NewReader(file),
+		})
+		if err != nil {
+			log.Fatalf("Unable to upload item %q, %v", itemPath, err)
+		}
+		fmt.Println("uploaded..", output.Location)
+		return output.Location
+	} else {
+		fmt.Printf("Sorry.. Couldn't find the item to upload.\nitemName: '%s'\nitemPath: '%s'\n", itemName, itemPath)
 	}
-	fmt.Println("uploaded..", output.Location)
-	return output.Location
+	return "there was an error uploading this object.."
 }
 
 func CrawlBucket(srcBucket string) []string { // need to recursively crawl IDK if this does
@@ -80,16 +105,26 @@ func CrawlBucket(srcBucket string) []string { // need to recursively crawl IDK i
 	return items
 }
 
-func ProcessBatches(srcBucket string, dstBucket string, fileList []string, batchSize int) {
+func pullAndConvertBatch(srcBucket string, dstBucket string, srcType string, dstType string, batch []string) {
+	defer wg.Done()
+	for i := 0; i < len(batch); i++ {
+		downloadObj(srcBucket, batch[i])
+		fileName, filePath := conversionSwitch(srcType, dstType, batch[i])
+		regularUpload(dstBucket, fileName, filePath)
+	}
+}
+
+func ProcessBatches(srcBucket string, dstBucket string, srcType string, dstType string,
+	fileList []string, batchSize int) {
 	var j int
 	for i := 0; i < len(fileList); i += batchSize {
 		j += batchSize
-		if j > len(fileList) { // create the index vars for fileList
+		if j > len(fileList) { // if the upper index is > ceiling
 			j = len(fileList)
 		}
 		wg.Add(1)
-		go pullAndConvertBatch(srcBucket, dstBucket, fileList[i:j]) // begin thread
-		fmt.Println(fileList[i:j])
+		go pullAndConvertBatch(srcBucket, dstBucket, srcType, dstType, fileList[i:j]) // begin thread
+		// fmt.Println(fileList[i:j]) // print out items in each batch
 	}
 	fmt.Println("waiting..")
 	wg.Wait()
