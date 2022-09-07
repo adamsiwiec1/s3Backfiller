@@ -1,4 +1,4 @@
-package s3Backfiller
+package cmd
 
 import (
 	"fmt"
@@ -8,10 +8,10 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "backfiller",
-	Short: "backfiller short desc",
-	Long: `back filler long
-   
-			long desc`,
+	Short: "Convert and transfer files between your S3 buckets with ease. Powered by Golang.",
+	Long: `To see help text, you can run:
+backfiller --help
+backfiller <command> --help`,
 	Run: func(cmd *cobra.Command, args []string) {
 
 	},

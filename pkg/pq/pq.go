@@ -1,4 +1,4 @@
-package cmd
+package pq
 
 import (
 	"encoding/json"
@@ -10,7 +10,7 @@ import (
 	"regexp"
 )
 
-func convertToJsonLocal(pqFilePath string) (string, string) {
+func ConvertPqToJsonLocal(pqFilePath string) (string, string) {
 
 	var jsonFileName = pqFilePath
 	pqFilePath = fmt.Sprintf("tmp/pq/%s", pqFilePath)

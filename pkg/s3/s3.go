@@ -1,4 +1,4 @@
-package cmd
+package s3
 
 import (
 	"bytes"
@@ -11,13 +11,12 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"s3-backfiller/pkg/pq"
 	"sync"
 )
 
 var (
-	maxRetries  = 3
-	maxPartSize = int64(200 * 1024 * 1024) // 1024 *1024 = ab 1 mb
-	sess, _     = session.NewSession(&aws.Config{
+	sess, _ = session.NewSession(&aws.Config{
 		Region:      aws.String("us-east-1"),
 		Credentials: credentials.NewSharedCredentials("", "session")})
 	uploader   = s3manager.NewUploader(sess)
@@ -27,7 +26,7 @@ var (
 	wg sync.WaitGroup
 )
 
-func crawlBucket(srcBucket string) []string { // need to recursively crawl idk if this does
+func CrawlBucket(srcBucket string) []string { // need to recursively crawl IDK if this does
 	var items []string
 	resp, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{Bucket: aws.String(srcBucket)})
 	if err != nil {
@@ -57,7 +56,7 @@ func pullAndConvertBatch(srcBucket string, dstBucket string, batch []string) {
 	defer wg.Done()
 	for i := 0; i < len(batch); i++ {
 		downloadObj(srcBucket, batch[i])
-		fileName, filePath := convertToJsonLocal(batch[i])
+		fileName, filePath := pq.ConvertPqToJsonLocal(batch[i])
 		regularUpload(dstBucket, fileName, filePath)
 	}
 }
@@ -76,15 +75,15 @@ func regularUpload(bucket string, itemName string, itemPath string) string {
 	return output.Location
 }
 
-func processBatches(srcBucket string, dstBucket string, fileList []string, batchSize int) {
+func ProcessBatches(srcBucket string, dstBucket string, fileList []string, batchSize int) {
 	var j int
 	for i := 0; i < len(fileList); i += batchSize {
 		j += batchSize
-		if j > len(fileList) {
+		if j > len(fileList) { // create the index vars for fileList
 			j = len(fileList)
 		}
 		wg.Add(1)
-		go pullAndConvertBatch(srcBucket, dstBucket, fileList[i:j])
+		go pullAndConvertBatch(srcBucket, dstBucket, fileList[i:j]) // begin thread
 		fmt.Println(fileList[i:j])
 	}
 	fmt.Println("waiting..")
