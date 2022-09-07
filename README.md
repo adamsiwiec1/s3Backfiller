@@ -1,6 +1,6 @@
 # s3Backfiller
 
-### ETL Tool written in Golang that extracts data from S3, transforms it to another file format, and loads back into S3.
+**ETL Tool written in Golang that extracts data from S3, transforms it to another file format, and loads back into S3.**
 
 ### Supported file formats:
 - Parquet
