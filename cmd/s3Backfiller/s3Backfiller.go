@@ -35,6 +35,8 @@ var pqToJson = &cobra.Command{
 		// Act
 		items := s3.CrawlBucket(srcBucket)
 		s3.ProcessBatches(srcBucket, dstBucket, items, batches)
+		// Assert
+		// Need 2 Implement
 	},
 }
 
