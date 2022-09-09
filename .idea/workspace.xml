@@ -5,11 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="4841e04a-bac3-458f-80ca-a557c5237da2" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/cmd/s3Backfiller/json2pq.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/s3Backfiller/s3Backfiller.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/s3Backfiller/pq2json.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/s3Backfiller/json2pq.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/s3Backfiller/json2pq.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/main.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pkg/json/json.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/json/json.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/pq/pq.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/pq/pq.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/s3/s3.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/s3/s3.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/s3Backfiller.exe" beforeDir="false" afterPath="$PROJECT_DIR$/s3Backfiller.exe" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -59,8 +62,29 @@
       <recent name="E:\.repos\s3Backfiller\cmd\s3Backfiller" />
     </key>
   </component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Go Build.go build main.go">
+    <configuration name="Unnamed" type="CompoundRunConfigurationType">
+      <method v="2" />
+    </configuration>
     <configuration default="true" type="GoApplicationRunConfiguration" factoryName="Go Application">
+      <module name="s3Backfiller" />
+      <working_directory value="$PROJECT_DIR$" />
+      <kind value="PACKAGE" />
+      <package value="s3-backfiller" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$" />
+      <method v="2" />
+    </configuration>
+    <configuration name="go build main.go" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
+      <module name="s3Backfiller" />
+      <working_directory value="$PROJECT_DIR$" />
+      <kind value="FILE" />
+      <package value="s3-backfiller" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$/main.go" />
+      <method v="2" />
+    </configuration>
+    <configuration name="go build s3-backfiller" type="GoApplicationRunConfiguration" factoryName="Go Application" nameIsGenerated="true">
       <module name="s3Backfiller" />
       <working_directory value="$PROJECT_DIR$" />
       <kind value="PACKAGE" />
@@ -79,6 +103,16 @@
       <framework value="gotest" />
       <method v="2" />
     </configuration>
+    <list>
+      <item itemvalue="Compound.Unnamed" />
+      <item itemvalue="Go Build.go build s3-backfiller" />
+      <item itemvalue="Go Build.go build main.go" />
+    </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Go Build.go build main.go" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TypeScriptGeneratedFilesManager">

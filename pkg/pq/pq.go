@@ -40,5 +40,5 @@ func ConvertPqToJson(pqFilePath string) (jsonFileName string, jsonFilePath strin
 	if err != nil {
 		log.Printf("Error removing file after conversion. %s", pqFilePath)
 	}
-	return jsonFileName, jsonFilePath
+	return jsonFileName + ".json", jsonFilePath
 }

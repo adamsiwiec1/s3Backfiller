@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"s3Backfiller/pkg/json"
 	"s3Backfiller/pkg/pq"
 	"sync"
 )
@@ -27,6 +28,8 @@ var (
 )
 
 func conversionSwitch(srcType string, dstType string, item string) (fileName string, filePath string) {
+	// item - filename.filetype
+	log.Println("converting..", item)
 	switch srcType {
 	case "pq":
 		switch dstType {
@@ -42,7 +45,7 @@ func conversionSwitch(srcType string, dstType string, item string) (fileName str
 	case "json":
 		switch dstType {
 		case "pq":
-			log.Println("NOT IMPLEMENTED. EXITiNG")
+			return json.ConvertJsonToPq(item)
 			//return pq.ConvertPqToJson(item)
 		case "avro":
 			log.Println("NOT IMPLEMENTED. EXITiNG")
@@ -72,25 +75,25 @@ func downloadObj(bucket string, item string) {
 	log.Println("downloaded..", file.Name(), numBytes, "bytes")
 }
 
-func regularUpload(bucket string, itemName string, itemPath string) string {
-	file, _ := ioutil.ReadFile(itemPath)
+func regularUpload(bucket string, fileName string, filePath string) string {
+	file, _ := ioutil.ReadFile(filePath)
 	if len(file) > 0 {
 		output, err := uploader.Upload(&s3manager.UploadInput{
 			Bucket: aws.String(bucket),
-			Key:    aws.String(fmt.Sprintf("%s.json", itemName)),
+			Key:    aws.String(fmt.Sprintf("%s", fileName)),
 			Body:   bytes.NewReader(file),
 		})
 		if err != nil {
-			log.Fatalf("Unable to upload item %q, %v", itemPath, err)
+			log.Fatalf("Unable to upload item %q, %v", filePath, err)
 		}
 		log.Println("uploaded..", output.Location)
-		err = os.Remove(itemPath) // remove file after upload
+		err = os.Remove(filePath) // remove file after upload
 		if err != nil {
-			log.Printf("Unable to remove item: %s", itemPath)
+			log.Printf("Unable to remove item: %s", filePath)
 		}
 		return output.Location
 	} else {
-		log.Printf("Sorry.. Couldn't find the item to upload.\nitemName: '%s'\nitemPath: '%s'\n", itemName, itemPath)
+		log.Printf("Sorry.. Couldn't find the item to upload.\nfileName: '%s'\nfilePath: '%s'\n", fileName, filePath)
 	}
 	return "there was an error uploading this object.."
 }
@@ -99,11 +102,11 @@ func CrawlBucket(srcBucket string) []string { // need to recursively crawl IDK i
 	var items []string
 	log.Printf("crawling %s..\n", srcBucket)
 	resp, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{Bucket: aws.String(srcBucket)})
+	log.Println("item count:", len(resp.Contents))
 	if err != nil {
 		log.Printf("error crawling bucket..%s\n", err)
 	}
 	for _, item := range resp.Contents {
-		log.Println(*item.Key)
 		items = append(items, *item.Key)
 	}
 	return items
@@ -128,7 +131,6 @@ func ProcessBatches(srcBucket string, dstBucket string, srcType string, dstType 
 		}
 		wg.Add(1)
 		go pullAndConvertBatch(srcBucket, dstBucket, srcType, dstType, fileList[i:j]) // begin thread
-		// fmt.Println(fileList[i:j]) // print out items in each batch
 	}
 	log.Println("threads started.. waiting..")
 	wg.Wait()

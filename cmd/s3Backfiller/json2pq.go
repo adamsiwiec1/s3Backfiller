@@ -7,7 +7,7 @@ import (
 )
 
 var jsonToPq = &cobra.Command{
-	Use: "json2Pq",
+	Use: "json2pq",
 	Run: func(cmd *cobra.Command, args []string) {
 		// Arrange
 		srcBucket, _ := cmd.PersistentFlags().GetString("srcBucket")
@@ -20,7 +20,7 @@ var jsonToPq = &cobra.Command{
 		// verify items are of the correct type, grab only items of correct type - method
 		s3.ProcessBatches(srcBucket, dstBucket, srcType, dstType, items, batches)
 		// Assert
-		log.Println("Need to implement pq2json assertion.")
+		log.Println("Need to implement json2pq assertion.")
 	},
 }
 
