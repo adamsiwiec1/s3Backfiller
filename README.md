@@ -17,12 +17,12 @@
 
 ### Features to be implemented:
 - Write verbose status to log file and output % complete to stdout (along w/ completion time).
-- Convert JSON to Parquet between Amazon S3 Buckets using Golang. (next PR)
 - Add flag to optionally zip dest files.
-- Option to organize destination folder structure. 
+- Option to organize destination folder structure.
 - Automate batch size selection to be most efficient. 
 - Add commands to clean up /tmp dir upon exit.
 - "How would you like to deal with nested json?" prompt. (i.e., create a new pq file and append to it each time you encounter a nested field, write the nested field all into 1 cell as a string, etc..)
+- Automate batch size selection to choose the most efficient size.
 
 ### Examples:
 
